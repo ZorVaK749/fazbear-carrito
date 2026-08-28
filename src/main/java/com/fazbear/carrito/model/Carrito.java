@@ -39,7 +39,7 @@ public class Carrito {
     public BigDecimal getTotal() {
         return items.stream()
                 .map(i -> i.getPrecioUnitario().multiply(BigDecimal.valueOf(i.getCantidad())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                .reduce(BigDecimal.ZERO, (a, b) -> a.add(b));
     }
 
     // ─── Getters y Setters ────────────────────────────────────────────────────
