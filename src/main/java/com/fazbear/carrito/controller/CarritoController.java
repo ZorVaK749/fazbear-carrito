@@ -4,6 +4,7 @@ import com.fazbear.carrito.model.Carrito;
 import com.fazbear.carrito.model.ItemCarrito;
 import com.fazbear.carrito.service.CarritoService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -12,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @RequestMapping("/api/carrito")
-@CrossOrigin(origins = "https://35.175.9.254")
+@CrossOrigin(origins = "${app.cors.allowed-origins}")
 public class CarritoController {
 
     private final CarritoService carritoService;
@@ -25,6 +26,7 @@ public class CarritoController {
      * GET /api/carrito/{usuarioId}
      * Obtiene el carrito de un usuario (o crea uno vacío).
      */
+    @PreAuthorize("hasRole('Admin') or hasRole('Cliente') or hasRole('Despachador')")
     @GetMapping("/{usuarioId}")
     public ResponseEntity<Carrito> getCarrito(@PathVariable String usuarioId) {
         return ResponseEntity.ok(carritoService.getOrCreate(usuarioId));
@@ -42,6 +44,7 @@ public class CarritoController {
      *   "precioUnitario": 12.99
      * }
      */
+    @PreAuthorize("hasRole('Admin') or hasRole('Cliente') or hasRole('Despachador')")
     @PostMapping("/{usuarioId}/items")
     public ResponseEntity<Carrito> addItem(@PathVariable String usuarioId,
                                            @RequestBody ItemCarrito item) {
@@ -52,6 +55,7 @@ public class CarritoController {
      * DELETE /api/carrito/{usuarioId}/items/{itemId}
      * Elimina un ítem específico del carrito.
      */
+    @PreAuthorize("hasRole('Admin') or hasRole('Cliente') or hasRole('Despachador')")
     @DeleteMapping("/{usuarioId}/items/{itemId}")
     public ResponseEntity<Carrito> removeItem(@PathVariable String usuarioId,
                                                @PathVariable Long itemId) {
@@ -62,6 +66,7 @@ public class CarritoController {
      * DELETE /api/carrito/{usuarioId}
      * Vacía completamente el carrito de un usuario.
      */
+    @PreAuthorize("hasRole('Admin') or hasRole('Cliente') or hasRole('Despachador')")
     @DeleteMapping("/{usuarioId}")
     public ResponseEntity<Carrito> clearCarrito(@PathVariable String usuarioId) {
         return ResponseEntity.ok(carritoService.clear(usuarioId));
