@@ -4,6 +4,7 @@ import com.fazbear.carrito.model.Carrito;
 import com.fazbear.carrito.security.CarritoOwnerAuthorization;
 import com.fazbear.carrito.service.CarritoService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.CacheControl;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -22,6 +23,14 @@ public class CarritoController {
     public CarritoController(CarritoService carritoService, CarritoOwnerAuthorization ownerAuthorization) {
         this.carritoService = carritoService;
         this.ownerAuthorization = ownerAuthorization;
+    }
+
+    /** Ruta literal: no crea un carrito con ID "me" ni acepta identidad de cliente. */
+    @GetMapping("/me")
+    public ResponseEntity<CarritoOwnerAuthorization.AuthenticatedOwner> me(
+            @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+            .body(ownerAuthorization.requireIdentity(jwt));
     }
 
     /**

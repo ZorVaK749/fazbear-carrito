@@ -22,6 +22,15 @@ public class CarritoOwnerAuthorization {
 
     /** Devuelve la clave verificada, nunca un identificador libre del path/body. */
     public String requireOwner(Jwt jwt, String usuarioId) {
+        AuthenticatedOwner owner = requireIdentity(jwt);
+        if (!owner.usuarioId().equals(usuarioId)) {
+            throw denied();
+        }
+        return owner.usuarioId();
+    }
+
+    /** Contrato compartido por /me y las cuatro operaciones del carrito. */
+    public AuthenticatedOwner requireIdentity(Jwt jwt) {
         if (jwt == null || !tenantId.equals(jwt.getClaims().get("tid"))) {
             throw denied();
         }
@@ -29,14 +38,15 @@ public class CarritoOwnerAuthorization {
         Object scopeClaim = jwt.getClaims().get("scp");
         if (!(oidClaim instanceof String oid) || !OBJECT_ID.matcher(oid).matches()
                 || !(scopeClaim instanceof String scopes)
-                || Arrays.stream(scopes.split("\\s+")).noneMatch("access_as_user"::equals)
-                || !oid.equals(usuarioId)) {
+                || Arrays.stream(scopes.split("\\s+")).noneMatch("access_as_user"::equals)) {
             throw denied();
         }
         // No fallback a sub, email, homeAccountId, roles admin ni identidad app-only.
         // oid es clave compatible solo bajo el tenant único validado por el decoder.
-        return oid;
+        return new AuthenticatedOwner(oid, tenantId);
     }
+
+    public record AuthenticatedOwner(String usuarioId, String tenantId) { }
 
     private AccessDeniedException denied() {
         return new AccessDeniedException("No autorizado para este carrito");
