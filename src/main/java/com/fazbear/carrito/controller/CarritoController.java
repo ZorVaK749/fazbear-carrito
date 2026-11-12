@@ -1,9 +1,11 @@
 package com.fazbear.carrito.controller;
 
 import com.fazbear.carrito.model.Carrito;
-import com.fazbear.carrito.model.ItemCarrito;
+import com.fazbear.carrito.security.CarritoOwnerAuthorization;
 import com.fazbear.carrito.service.CarritoService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -12,13 +14,14 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @RequestMapping("/api/carrito")
-@CrossOrigin(origins = "https://w8xu8o4pd7.execute-api.us-east-1.amazonaws.com")
 public class CarritoController {
 
     private final CarritoService carritoService;
+    private final CarritoOwnerAuthorization ownerAuthorization;
 
-    public CarritoController(CarritoService carritoService) {
+    public CarritoController(CarritoService carritoService, CarritoOwnerAuthorization ownerAuthorization) {
         this.carritoService = carritoService;
+        this.ownerAuthorization = ownerAuthorization;
     }
 
     /**
@@ -26,8 +29,9 @@ public class CarritoController {
      * Obtiene el carrito de un usuario (o crea uno vacío).
      */
     @GetMapping("/{usuarioId}")
-    public ResponseEntity<Carrito> getCarrito(@PathVariable String usuarioId) {
-        return ResponseEntity.ok(carritoService.getOrCreate(usuarioId));
+    public ResponseEntity<Carrito> getCarrito(@PathVariable String usuarioId,
+                                             @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(carritoService.getOrCreate(ownerAuthorization.requireOwner(jwt, usuarioId)));
     }
 
     /**
@@ -44,8 +48,10 @@ public class CarritoController {
      */
     @PostMapping("/{usuarioId}/items")
     public ResponseEntity<Carrito> addItem(@PathVariable String usuarioId,
-                                           @RequestBody ItemCarrito item) {
-        return ResponseEntity.ok(carritoService.addItem(usuarioId, item));
+                                           @RequestBody AgregarItemRequest item,
+                                           @AuthenticationPrincipal Jwt jwt) {
+        String owner = ownerAuthorization.requireOwner(jwt, usuarioId);
+        return ResponseEntity.ok(carritoService.addItem(owner, item.toItem()));
     }
 
     /**
@@ -54,8 +60,9 @@ public class CarritoController {
      */
     @DeleteMapping("/{usuarioId}/items/{itemId}")
     public ResponseEntity<Carrito> removeItem(@PathVariable String usuarioId,
-                                               @PathVariable Long itemId) {
-        return ResponseEntity.ok(carritoService.removeItem(usuarioId, itemId));
+                                               @PathVariable Long itemId,
+                                               @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(carritoService.removeItem(ownerAuthorization.requireOwner(jwt, usuarioId), itemId));
     }
 
     /**
@@ -63,7 +70,8 @@ public class CarritoController {
      * Vacía completamente el carrito de un usuario.
      */
     @DeleteMapping("/{usuarioId}")
-    public ResponseEntity<Carrito> clearCarrito(@PathVariable String usuarioId) {
-        return ResponseEntity.ok(carritoService.clear(usuarioId));
+    public ResponseEntity<Carrito> clearCarrito(@PathVariable String usuarioId,
+                                               @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(carritoService.clear(ownerAuthorization.requireOwner(jwt, usuarioId)));
     }
 }

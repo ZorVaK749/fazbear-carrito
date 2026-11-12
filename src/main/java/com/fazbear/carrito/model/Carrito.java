@@ -18,7 +18,7 @@ public class Carrito {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** ID del usuario — claim 'sub' del JWT (o string libre en dev) */
+    /** oid verificado del usuario dentro del único tenant permitido; no sub libre. */
     @Column(name = "usuario_id", nullable = false, length = 100, unique = true)
     private String usuarioId;
 

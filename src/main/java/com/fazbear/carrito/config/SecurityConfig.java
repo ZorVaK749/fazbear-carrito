@@ -15,6 +15,9 @@ import org.springframework.security.oauth2.jwt.JwtDecoders;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
@@ -28,16 +31,29 @@ public class SecurityConfig {
     @Value("${spring.security.oauth2.resourceserver.jwt.client-id}")
     private String clientId;
 
+    @Value("${spring.security.oauth2.resourceserver.jwt.tenant-id}")
+    private String tenantId;
+
+    @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri:}")
+    private String jwkSetUri;
+
     @Bean
     public JwtDecoder jwtDecoder() {
-        NimbusJwtDecoder decoder = JwtDecoders.fromIssuerLocation(issuerUri);
+        // Discovery Azure en producción; tests usan únicamente un JWKS local controlado.
+        NimbusJwtDecoder decoder = jwkSetUri.isBlank()
+            ? JwtDecoders.fromIssuerLocation(issuerUri)
+            : NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
 
         OAuth2TokenValidator<Jwt> audienceValidator = new JwtClaimValidator<List<String>>(
             "aud", aud -> aud != null && aud.contains(clientId)
         );
 
         OAuth2TokenValidator<Jwt> withIssuer = JwtValidators.createDefaultWithIssuer(issuerUri);
-        OAuth2TokenValidator<Jwt> combined   = new DelegatingOAuth2TokenValidator<>(withIssuer, audienceValidator);
+        OAuth2TokenValidator<Jwt> tenantValidator = new JwtClaimValidator<Object>(
+            "tid", tid -> tid instanceof String && tenantId.equals(tid)
+        );
+        OAuth2TokenValidator<Jwt> combined = new DelegatingOAuth2TokenValidator<>(
+            withIssuer, audienceValidator, tenantValidator);
         decoder.setJwtValidator(combined);
 
         return decoder;
@@ -46,6 +62,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+            .cors(Customizer.withDefaults())
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/h2-console/**").permitAll()
@@ -56,5 +73,20 @@ public class SecurityConfig {
             .headers(headers -> headers.frameOptions(f -> f.disable()));
 
         return http.build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration cors = new CorsConfiguration();
+        cors.setAllowedOrigins(List.of(
+            "https://p5gsy16utd.execute-api.us-east-1.amazonaws.com",
+            "http://localhost:4200"));
+        cors.setAllowedMethods(List.of("GET", "POST", "DELETE", "OPTIONS"));
+        cors.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        cors.setAllowCredentials(false); // Bearer explícito; no autenticación mediante cookies.
+        cors.setMaxAge(3600L);
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/api/carrito/**", cors);
+        return source;
     }
 }
