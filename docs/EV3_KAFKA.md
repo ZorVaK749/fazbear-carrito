@@ -1,5 +1,11 @@
 # EV3 cart producer
 
+AWS13/11: `Dockerfile.aws` y perfil `ev3-aws` exigen PostgreSQL/DDL validate,
+Kafka y Entra real sin JWKS LAB. No reiniciar JVM H2 EV2; preservación viva y
+migración revisada son prerrequisitos, no se ejecutaron. Workflow GHCR manual opt-in.
+Procedimiento en `fazbear-pago/docs/AWS_DEPLOY_ROLLBACK.md`. El contrato cruzado
+con Analytics ensaya ADD/UPDATE/REMOVE reales, incluidos REMOVE0 y duplicados.
+
 Kafka is opt-in: `EV3_KAFKA_ENABLED=false` by default. Boot 4.1.1 manages the Kafka
 starter. Dockerfile uses Java 21. CI builds/tests only; no registry or cloud actions.
 

@@ -48,8 +48,10 @@ class CarritoOutboxIntegrationTests extends LocalJwtTestSupport {
         long previous = 0;
         String[] types = {"ADD", "UPDATE", "REMOVE"};
         int[] quantities = {2, 4, 0};
+        var exported = mapper.createArrayNode();
         for (int i = 0; i < rows.size(); i++) {
             var event = mapper.readTree((String) rows.get(i).get("payload"));
+            exported.add(event);
             assertEquals(9, event.size());
             UUID.fromString(event.get("eventId").asText());
             UUID.fromString(event.get("correlationId").asText());
@@ -64,6 +66,10 @@ class CarritoOutboxIntegrationTests extends LocalJwtTestSupport {
             assertEquals(types[i], event.at("/data/tipo").asText());
             assertEquals(quantities[i], event.at("/data/cantidad").asInt());
             assertFalse(event.toString().contains("precio"));
+        }
+        if (Boolean.getBoolean("ev3.contract.export")) {
+            java.nio.file.Files.createDirectories(java.nio.file.Path.of("target/contracts"));
+            java.nio.file.Files.writeString(java.nio.file.Path.of("target/contracts/carrito.json"), exported.toString());
         }
     }
     @Test void rollbackDiscardsCartAndOutboxTogether() {
