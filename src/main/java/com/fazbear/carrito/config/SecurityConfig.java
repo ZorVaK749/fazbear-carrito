@@ -65,6 +65,7 @@ public class SecurityConfig {
             .cors(Customizer.withDefaults())
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/api/carrito/**", "/api/carrito").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/api/carrito/**").authenticated()
                 .anyRequest().authenticated()
@@ -82,11 +83,12 @@ public class SecurityConfig {
             "https://p5gsy16utd.execute-api.us-east-1.amazonaws.com",
             "http://localhost:4200"));
         cors.setAllowedMethods(List.of("GET", "POST", "DELETE", "OPTIONS"));
-        cors.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        cors.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"));
         cors.setAllowCredentials(false); // Bearer explícito; no autenticación mediante cookies.
         cors.setMaxAge(3600L);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/carrito/**", cors);
+        source.registerCorsConfiguration("/api/carrito", cors);
         return source;
     }
 }

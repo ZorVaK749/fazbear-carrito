@@ -155,6 +155,18 @@ class CarritoSecurityIntegrationTests extends LocalJwtTestSupport {
     }
 
     @ParameterizedTest
+    @ValueSource(strings = {FRONTEND, "http://localhost:4200"})
+    void allowedPreflightOnMeEndpointReturnsOkAndCorsHeaders(String origin) throws Exception {
+        mvc.perform(options("/api/carrito/me")
+                .header("Origin", origin)
+                .header("Access-Control-Request-Method", "GET")
+                .header("Access-Control-Request-Headers", "authorization,content-type,accept,origin,x-requested-with"))
+            .andExpect(status().isOk())
+            .andExpect(header().string("Access-Control-Allow-Origin", origin))
+            .andExpect(header().doesNotExist("Access-Control-Allow-Credentials"));
+    }
+
+    @ParameterizedTest
     @ValueSource(strings = {"https://w8xu8o4pd7.execute-api.us-east-1.amazonaws.com", "https://evil.example", "https://p5gsy16utd.execute-api.us-east-1.amazonaws.com.evil.example", "null"})
     void unauthorizedOriginsRejectedAtPreflightAndActualRequest(String origin) throws Exception {
         mvc.perform(options(BASE + A).header("Origin", origin)
