@@ -8,5 +8,5 @@ WORKDIR /app
 COPY --from=build /build/target/*.jar app.jar
 USER 10001:10001
 ENV SPRING_PROFILES_ACTIVE=ev3-aws
-EXPOSE 8080
+EXPOSE 8083
 ENTRYPOINT ["java", "-jar", "app.jar"]
