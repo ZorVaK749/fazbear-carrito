@@ -5,7 +5,6 @@ import com.fazbear.carrito.events.OutboxPublisher;
 import com.fazbear.carrito.events.OutboxRepository;
 import com.fazbear.carrito.repository.CarritoRepository;
 import com.fazbear.carrito.service.CarritoService;
-import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

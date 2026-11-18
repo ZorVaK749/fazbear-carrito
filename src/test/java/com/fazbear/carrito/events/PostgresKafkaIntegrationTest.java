@@ -35,6 +35,7 @@ class PostgresKafkaIntegrationTest {
     // Boot exposes a wildcard-generic template; match its erased type for wrapping.
     @SuppressWarnings("rawtypes")
     @MockitoSpyBean KafkaTemplate kafka;
+    @SuppressWarnings("unchecked")
     @Test void postgresMutationSurvivesDeliveryFailureThenReachesRealKafka() throws Exception {
         try (var connection = jdbc.getDataSource().getConnection()) {
             assertTrue(connection.getMetaData().getURL().contains("/ev3_carrito_test"), "Disposable test DB required");
