@@ -19,10 +19,13 @@ public class CarritoController {
 
     private final CarritoService carritoService;
     private final CarritoOwnerAuthorization ownerAuthorization;
+    private final CarritoCatalogo catalogo;
 
-    public CarritoController(CarritoService carritoService, CarritoOwnerAuthorization ownerAuthorization) {
+    public CarritoController(CarritoService carritoService, CarritoOwnerAuthorization ownerAuthorization,
+                            CarritoCatalogo catalogo) {
         this.carritoService = carritoService;
         this.ownerAuthorization = ownerAuthorization;
+        this.catalogo = catalogo;
     }
 
     /** Ruta literal: no crea un carrito con ID "me" ni acepta identidad de cliente. */
@@ -38,9 +41,12 @@ public class CarritoController {
      * Obtiene el carrito de un usuario (o crea uno vacío).
      */
     @GetMapping("/{usuarioId}")
-    public ResponseEntity<Carrito> getCarrito(@PathVariable String usuarioId,
+    public ResponseEntity<CarritoCatalogo.Vista> getCarrito(@PathVariable String usuarioId,
                                              @AuthenticationPrincipal Jwt jwt) {
-        return ResponseEntity.ok(carritoService.getOrCreate(ownerAuthorization.requireOwner(jwt, usuarioId)));
+        var carrito = carritoService.getOrCreate(ownerAuthorization.requireOwner(jwt, usuarioId));
+        var precios = carrito.getItems().isEmpty() ? java.util.Map.<Long, CarritoCatalogo.Producto>of()
+            : catalogo.precios(jwt);
+        return ResponseEntity.ok(catalogo.ver(carrito, precios));
     }
 
     /**
@@ -52,15 +58,16 @@ public class CarritoController {
      *   "productoId": 1,
      *   "nombreProducto": "Pizza Margherita de Freddy",
      *   "cantidad": 2,
-     *   "precioUnitario": 12.99
+     *   "precioUnitario": 12990
      * }
      */
     @PostMapping("/{usuarioId}/items")
-    public ResponseEntity<Carrito> addItem(@PathVariable String usuarioId,
+    public ResponseEntity<CarritoCatalogo.Vista> addItem(@PathVariable String usuarioId,
                                            @RequestBody AgregarItemRequest item,
                                            @AuthenticationPrincipal Jwt jwt) {
         String owner = ownerAuthorization.requireOwner(jwt, usuarioId);
-        return ResponseEntity.ok(carritoService.addItem(owner, item.toItem()));
+        var precios = catalogo.precios(jwt);
+        return ResponseEntity.ok(catalogo.ver(carritoService.addItem(owner, catalogo.item(item, precios)), precios));
     }
 
     /**
@@ -68,10 +75,12 @@ public class CarritoController {
      * Elimina un ítem específico del carrito.
      */
     @DeleteMapping("/{usuarioId}/items/{itemId}")
-    public ResponseEntity<Carrito> removeItem(@PathVariable String usuarioId,
+    public ResponseEntity<CarritoCatalogo.Vista> removeItem(@PathVariable String usuarioId,
                                                @PathVariable Long itemId,
                                                @AuthenticationPrincipal Jwt jwt) {
-        return ResponseEntity.ok(carritoService.removeItem(ownerAuthorization.requireOwner(jwt, usuarioId), itemId));
+        String owner = ownerAuthorization.requireOwner(jwt, usuarioId);
+        var precios = catalogo.precios(jwt);
+        return ResponseEntity.ok(catalogo.ver(carritoService.removeItem(owner, itemId), precios));
     }
 
     /**
