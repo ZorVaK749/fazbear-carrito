@@ -83,6 +83,12 @@ public class CarritoController {
         return ResponseEntity.ok(catalogo.ver(carritoService.removeItem(owner, itemId), precios));
     }
 
+    @DeleteMapping("/{usuarioId}/items/comprados")
+    public ResponseEntity<Carrito> clearPurchasedItems(@PathVariable String usuarioId,
+            @RequestParam String revision, @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(carritoService.clearPurchase(ownerAuthorization.requireOwner(jwt, usuarioId), revision));
+    }
+
     /**
      * DELETE /api/carrito/{usuarioId}
      * Vacía completamente el carrito de un usuario.

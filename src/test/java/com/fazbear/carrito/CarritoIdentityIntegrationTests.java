@@ -1,5 +1,6 @@
 package com.fazbear.carrito;
 
+import com.jayway.jsonpath.JsonPath;
 import com.fazbear.carrito.repository.CarritoRepository;
 import java.util.HashMap;
 import java.util.Map;
@@ -102,5 +103,37 @@ class CarritoIdentityIntegrationTests extends LocalJwtTestSupport {
             .content("{\"productoId\":7,\"cantidad\":1,\"precioUnitario\":12.99}"))
             .andExpect(status().isForbidden());
         assertEquals(0, repository.count());
+    }
+
+    @Test
+    void clearsOnlyTheUnchangedCartOfTheAuthenticatedBuyer() throws Exception {
+        String cart = "/api/carrito/" + A;
+        String items = cart + "/items";
+        String purchased = items + "/comprados";
+        String owner = "Bearer " + token(A);
+        String line = "{\"productoId\":7,\"nombreProducto\":\"Pizza\",\"cantidad\":1,\"precioUnitario\":12990}";
+        var first = mvc.perform(post(items).header("Authorization", owner).contentType("application/json").content(line))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        String oldRevision = JsonPath.read(first, "$.revisionCompra");
+
+        mvc.perform(delete(purchased).param("revision", oldRevision).header("Authorization", "Bearer " + token(B)))
+                .andExpect(status().isForbidden());
+        mvc.perform(post(items).header("Authorization", owner).contentType("application/json").content(line))
+                .andExpect(status().isOk());
+        mvc.perform(delete(purchased).param("revision", oldRevision).header("Authorization", owner))
+                .andExpect(status().isConflict());
+        var changed = mvc.perform(get(cart).header("Authorization", owner))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items[0].cantidad").value(2))
+                .andReturn().getResponse().getContentAsString();
+        String currentRevision = JsonPath.read(changed, "$.revisionCompra");
+        mvc.perform(delete(purchased).param("revision", currentRevision).header("Authorization", owner))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items").isEmpty());
+
+        mvc.perform(post(items).header("Authorization", owner).contentType("application/json").content(line))
+                .andExpect(status().isOk());
+        mvc.perform(delete(purchased).param("revision", currentRevision).header("Authorization", owner))
+                .andExpect(status().isConflict());
+        mvc.perform(get(cart).header("Authorization", owner))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items[0].cantidad").value(1));
     }
 }

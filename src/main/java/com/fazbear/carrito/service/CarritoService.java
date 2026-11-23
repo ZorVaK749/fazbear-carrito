@@ -6,7 +6,9 @@ import com.fazbear.carrito.repository.CarritoRepository;
 import org.springframework.stereotype.Service;
 import com.fazbear.carrito.events.EventOutbox;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 import java.util.Map;
 
 import java.util.Optional;
@@ -88,8 +90,22 @@ public class CarritoService {
 
     /** Vacía completamente el carrito de un usuario */
     public Carrito clear(String usuarioId) {
+        return clear(getOrCreate(usuarioId));
+    }
+
+    public Carrito clearPurchase(String usuarioId, String revision) {
+        if (!revision.matches("[0-9a-f]{64}")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Revisión de compra inválida");
+        }
         Carrito carrito = getOrCreate(usuarioId);
-        carrito.getItems().forEach(i -> emit(usuarioId, i.getProductoId(), "REMOVE", 0));
+        if (!revision.equals(carrito.getRevisionCompra())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "El carrito cambió desde la compra");
+        }
+        return clear(carrito);
+    }
+
+    private Carrito clear(Carrito carrito) {
+        carrito.getItems().forEach(i -> emit(carrito.getUsuarioId(), i.getProductoId(), "REMOVE", 0));
         carrito.getItems().clear();
         return carritoRepository.save(carrito);
     }

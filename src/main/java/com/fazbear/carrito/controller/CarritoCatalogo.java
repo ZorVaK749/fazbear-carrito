@@ -75,12 +75,14 @@ class CarritoCatalogo {
         }).toList();
         var total = items.stream().map(i -> i.precioUnitario().multiply(BigDecimal.valueOf(i.cantidad())))
             .reduce(BigDecimal.ZERO, BigDecimal::add);
-        return new Vista(carrito.getId(), carrito.getUsuarioId(), carrito.getCreadoEn(), items, total);
+        return new Vista(carrito.getId(), carrito.getUsuarioId(), carrito.getCreadoEn(), items, total,
+            carrito.getRevisionCompra());
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     record Producto(Long id, String nombre, BigDecimal precio) {}
     record Linea(Long id, Long productoId, String nombreProducto, int cantidad,
                  BigDecimal precioUnitario, boolean precioVigente) {}
-    record Vista(Long id, String usuarioId, LocalDateTime creadoEn, List<Linea> items, BigDecimal total) {}
+    record Vista(Long id, String usuarioId, LocalDateTime creadoEn, List<Linea> items, BigDecimal total,
+                 String revisionCompra) {}
 }

@@ -2,9 +2,14 @@ package com.fazbear.carrito.model;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Representa el carrito de compras temporal de un usuario.
@@ -40,6 +45,19 @@ public class Carrito {
         return items.stream()
                 .map(i -> i.getPrecioUnitario().multiply(BigDecimal.valueOf(i.getCantidad())))
                 .reduce(BigDecimal.ZERO, (a, b) -> a.add(b));
+    }
+
+    /** Identifica las líneas y cantidades actuales sin cambiar el esquema persistente. */
+    public String getRevisionCompra() {
+        var lineas = items.stream()
+                .map(item -> item.getId() + ":" + item.getProductoId() + ":" + item.getCantidad()).sorted()
+                .collect(Collectors.joining(";"));
+        try {
+            var hash = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(hash.digest((id + "|" + lineas).getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException error) {
+            throw new IllegalStateException(error);
+        }
     }
 
     // ─── Getters y Setters ────────────────────────────────────────────────────
